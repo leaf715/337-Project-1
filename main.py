@@ -123,6 +123,17 @@ def get_names(tweets):
                             names[name] = names[name] + 1
                         else:
                             names[name] = 1
+        # This should work better for names but i cant get nltk to work
+        # words = [nltk.word_tokenize(tweet)]
+        # tagged_words = [nltk.pos_tag(word) for word in words]
+        # for chunk in nltk.ne_chunk(tagged_words):
+        #     if type(chunk) == nltk.tree.Tree:
+        #         if chunk.label() == 'PERSON':
+        #             name = (' '.join([c[0] for c in chunk]))
+        #             if name in names.keys():
+        #                 names[name] = names[name] + 1
+        #             else:
+        #                 names[name] = 1
 
     return names
 
