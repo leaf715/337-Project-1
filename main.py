@@ -1,5 +1,6 @@
 import json
 import nltk
+nltk.download("stopwords");
 from nltk.corpus import stopwords, names
 stop = stopwords.words('english')
 # http://www.nltk.org/
