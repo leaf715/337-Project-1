@@ -1,6 +1,6 @@
 import json
 import nltk
-# nltk.download("stopwords") getting Certificate error with this in
+# nltk.download("stopwords") #getting Certificate error with this in
 from nltk.corpus import stopwords, names
 stop = stopwords.words('english')
 # http://www.nltk.org/
@@ -40,17 +40,17 @@ def main():
         print('Host: '+potential_hosts[0][0])
 
     # get all names of potential nominees, winners, and presenters
-    all_nominee_tweets = get_relevant_tweets(['nominee', 'should\'ve w', 'didn\'t win', 'deserves to win', 'nominate'], tweets)
-    nominees_m, nominees_f = get_people(all_nominee_tweets)
-    all_winner_tweets = get_relevant_tweets(['congrat', 'win'], tweets)
-    winners_m, winners_f = get_people(all_winner_tweets)
-    all_presenter_tweets = get_relevant_tweets(['present'], tweets)
-    all_presenters_m, all_presenters_f = get_people(all_presenter_tweets)
-    all_presenters = all_presenters_f.union(all_presenters_m)
+    # all_nominee_tweets = get_relevant_tweets(['nominee', 'should\'ve w', 'didn\'t win', 'deserves to win', 'nominate'], tweets)
+    # nominees_m, nominees_f = get_people(all_nominee_tweets)
+    # all_winner_tweets = get_relevant_tweets(['congrat', 'win'], tweets)
+    # winners_m, winners_f = get_people(all_winner_tweets)
+    # all_presenter_tweets = get_relevant_tweets(['present'], tweets)
+    # all_presenters_m, all_presenters_f = get_people(all_presenter_tweets)
+    # all_presenters = all_presenters_f.union(all_presenters_m)
     # figure out how to identify movie and tv show names
     nominees_show = set()
     winners_show = set()
-
+    previous_winners_ppl = set()
     # match actors and actresses to awards
     for award in award_names:
         # preprocess keys given to tweet searcher
@@ -83,14 +83,13 @@ def main():
                 bad_keys.add('Miniseries')
         else:
             category = []
-        if 'Actor' in keys:
-            winner_set = winners_m
-            # nominees_set = nominees_m
-        elif 'Actress' in keys:
-            winner_set = winners_f
+        # if 'Actor' in keys:
+        #     winner_set = winners_m
+        #     # nominees_set = nominees_m
+        # elif 'Actress' in keys:
+        #     winner_set = winners_f
             # nominees_set = nominees_f
-        else:
-            continue
+        # else:
         if 'Best' in keys:
             keys.remove('Best')
         if 'Motion' in keys:
@@ -106,12 +105,21 @@ def main():
         relevant_tweets_keys = get_relevant_tweets(keys, tweets)
         relevant_tweets_uncleaned = get_relevant_tweets(category, relevant_tweets_keys)
         relevant_tweets = remove_wrong_section(bad_keys, relevant_tweets_uncleaned)
+        winner_tweets = get_relevant_tweets(['congrat', 'win'], relevant_tweets)
+        winners_m, winners_f = get_people(winner_tweets)
+        if 'Actor' in keys:
+            winner_set = winners_m - previous_winners_ppl
+        elif 'Actress' in keys:
+            winner_set = winners_f - previous_winners_ppl
+        else:
+            continue
         winner = get_winner(winner_set, relevant_tweets)
         print(award)
         print(winner)
         # 4 people in history have won 2 individual awards in the same year I'll take that bet
-        winners_m.discard(winner)
-        winners_f.discard(winner)
+        previous_winners_ppl.add(winner)
+        # winners_m.discard(winner)
+        # winners_f.discard(winner)
     return
 
 # Find winner most associated with award
