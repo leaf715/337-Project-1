@@ -1,6 +1,6 @@
 import json
 import nltk
-nltk.download("stopwords");
+# nltk.download("stopwords") getting Certificate error with this in
 from nltk.corpus import stopwords, names
 stop = stopwords.words('english')
 # http://www.nltk.org/
@@ -39,104 +39,144 @@ def main():
     else:
         print('Host: '+potential_hosts[0][0])
 
+    # get all names of potential nominees, winners, and presenters
+    all_nominee_tweets = get_relevant_tweets(['nominee', 'should\'ve w', 'didn\'t win', 'deserves to win', 'nominate'], tweets)
+    nominees_m, nominees_f = get_people(all_nominee_tweets)
+    all_winner_tweets = get_relevant_tweets(['congrat', 'win'], tweets)
+    winners_m, winners_f = get_people(all_winner_tweets)
+    all_presenter_tweets = get_relevant_tweets(['present'], tweets)
+    all_presenters_m, all_presenters_f = get_people(all_presenter_tweets)
+    all_presenters = all_presenters_f.union(all_presenters_m)
+    # figure out how to identify movie and tv show names
+    nominees_show = set()
+    winners_show = set()
+
+    # match actors and actresses to awards
     for award in award_names:
-        print('\n')
-        # everything in this section is temporary and shitty
-        # We need a way to get all the ways that an award can be mentioned in a tweet
-        # Also get names does not work when the award is for a movie not an actor
-        keys = award.split()
-        if '-' in keys:
-            keys.remove('-')
+        # preprocess keys given to tweet searcher
+        leftright = award.split('–')
+        keys = leftright[0].split()
+        bad_keys = set()
+        if len(leftright) > 1:
+            category = leftright[1].split()
+            if 'or' in category:
+                category.remove('or')
+            if 'Motion' in category:
+                category.remove('Motion')
+            if 'Picture' in category:
+                category.append('Film')
+                bad_keys.add('TV')
+                bad_keys.add('Television')
+            if 'Television' in category:
+                category.append('TV')
+                bad_keys.add('Picture')
+            if 'Miniseries' in category:
+                bad_keys.add('Drama')
+                bad_keys.add('Comedy')
+                bad_keys.add('Musical')
+            else:
+                bad_keys.add('Miniseries')
+        else:
+            category = []
+        if 'Actor' in keys:
+            winner_set = winners_m
+            # nominees_set = nominees_m
+        elif 'Actress' in keys:
+            winner_set = winners_f
+            # nominees_set = nominees_f
+        else:
+            continue
         if 'Best' in keys:
             keys.remove('Best')
-        # get tweets
-        relevant_tweets = get_relevant_tweets(keys, tweets)
-        for i in range(len(relevant_tweets)):
-            tweet = relevant_tweets[i]
-            tweet = tweet.replace('Best','')
-            for key in keys:
-                tweet = tweet.replace(key,'')
+        if 'Motion' in keys:
+            keys.remove('Motion')
+        if 'Picture' in keys:
+            keys.append('Film')
+            bad_keys.add('TV')
+            bad_keys.add('Television')
+        if 'Television' in keys:
+            keys.append('TV')
+            bad_keys.add('Picture')
+        # Get relevant tweets
+        relevant_tweets_keys = get_relevant_tweets(keys, tweets)
+        relevant_tweets_uncleaned = get_relevant_tweets(category, relevant_tweets_keys)
+        relevant_tweets = remove_wrong_section(bad_keys, relevant_tweets_uncleaned)
+        winner = get_winner(winner_set, relevant_tweets)
+        print(award)
+        print(winner)
+        # 4 people in history have won 2 individual awards in the same year I'll take that bet
+        winners_m.discard(winner)
+        winners_f.discard(winner)
+    return
 
-            relevant_tweets[i] = tweet
-        # trim tweets for ones about the presenter and winner
-        # presenter_tweets = get_relevant_tweets(['present'], relevant_tweets) This doesnt work no one uses the word presenter
-        winner_tweets = get_relevant_tweets(['win'], relevant_tweets)
-        people_involved = get_names(relevant_tweets)
-        potential_presenters = get_names(relevant_tweets)#(presenter_tweets)
-        potential_winners = get_names(winner_tweets)
-        # the order here is based on me assuming the winner will be tweeted about the most
-        # maybe presenter should be first idk
-        potential_winners = sorted(potential_winners.items(), key = lambda x: x[1], reverse=True)
-        if potential_winners:
-            winner = potential_winners[0][0]
-        else:
-            winner = "shit broke"
-        if winner in potential_hosts:
-            del potential_presenters[winner]
-        if winner in people_involved:
-            del people_involved[winner]
-        potential_presenters = sorted(potential_presenters.items(), key = lambda x: x[1], reverse=True)
-        if potential_presenters:
-            presenter = potential_presenters[0][0]
-        else:
-            presenter = "shit broke"
-        if presenter in people_involved:
-            del people_involved[presenter]
-        people_involved = sorted(people_involved.items(), key = lambda x: x[1], reverse=True)
-        if len(people_involved) >= 4:
-            nominees = [people_involved[0][0], people_involved[1][0], people_involved[2][0], people_involved[3][0], winner]
-        else:
-            nominees = "shit broke"
-        print('Award: '+award+'\nPresenter: '+presenter+'\nWinner: '+winner+'\nNominees: ')
-        print(nominees)
+# Find winner most associated with award
+def get_winner(possible, tweets):
+    match_dict = dict((name, 0) for name in list(possible))
+    allwords = ' '.join(tweets)
+    for p in possible:
+        # without the space at the end people who spell like shit mess everything up
+        match_dict[p] = allwords.count(p+' ')
+    sorted_dict = sorted(match_dict.items(), key = lambda x: x[1], reverse=True)
+    winner = sorted_dict[0][0]
+    return winner
 
-
+# get tweets that contain any of the keys
 def get_relevant_tweets(keys, tweets):
-    # Get subset of tweets that contain 60%+ of the words in the keys list
-    # Can adjust this required %, or weight the keys based on importance. For example, Best is
-    # part of every award name, but DeMille is the most important word in that long ass award's
-    # name
     relevant = []
-    total_keys = len(keys)
     for tweet in tweets:
-        keysfound = 0
         for key in keys:
             if re.search(key, tweet, re.IGNORECASE):
-                keysfound+=1
-        if float(keysfound)/float(total_keys) >= 0.6:
-            relevant.append(tweet)
+                relevant.append(tweet)
+                break
 
     return relevant
 
-def get_names(tweets):
-    # Find names based on first letter being capital of two consecutive words
-    #  and then counting the number of times they show up
-    # Definitely better way of identifying names but this is simple
-    names = {}
+# Gets rid of tweets about wrong award because some of them have very similar keys
+def remove_wrong_section(bad_keys, tweets):
+    relevant = tweets
     for tweet in tweets:
-        words = tweet.split()
-        for i in range(len(words)):
-            if words[i][0].isupper():
-                if i + 1 < len(words) - 1:
-                    if words[i+1][0].isupper():
-                        name = (words[i] + ' ' + words[i+1])
-                        if name in names.keys():
-                            names[name] = names[name] + 1
-                        else:
-                            names[name] = 1
-        # This should work better for names but i cant get nltk to work
-        # words = [nltk.word_tokenize(tweet)]
-        # tagged_words = [nltk.pos_tag(word) for word in words]
-        # for chunk in nltk.ne_chunk(tagged_words):
-        #     if type(chunk) == nltk.tree.Tree:
-        #         if chunk.label() == 'PERSON':
-        #             name = (' '.join([c[0] for c in chunk]))
-        #             if name in names.keys():
-        #                 names[name] = names[name] + 1
-        #             else:
-        #                 names[name] = 1
+        for key in bad_keys:
+            if re.search(key, tweet, re.IGNORECASE):
+                relevant.remove(tweet)
+                break
+    return relevant
 
-    return names
+# Get actor and actress names
+def get_people(tweets):
+    men = set()
+    women = set()
+    for tweet in tweets:
+        words = [nltk.word_tokenize(tweet)]
+        tagged_words = [nltk.pos_tag(word) for word in words][0]
+        for chunk in nltk.ne_chunk(tagged_words):
+            if type(chunk) == nltk.tree.Tree:
+                # Adele needs a last name but other than her its fine to look for first and last
+                if chunk.label() == 'PERSON' and len(chunk) > 1 and len(chunk) < 3:
+                    name = (' '.join([c[0] for c in chunk]))
+                    first = name.split(' ',1)[0]
+                    if first in names.words('male.txt'):
+                        men.add(name)
+                    if first in names.words('female.txt'):
+                        women.add(name)
+
+    return men, women
+
+# Old function that still works for host so I left it in
+def get_names(tweets):
+    ppl_and_movies = {}
+    for tweet in tweets:
+        words = [nltk.word_tokenize(tweet)]
+        tagged_words = [nltk.pos_tag(word) for word in words][0]
+        for chunk in nltk.ne_chunk(tagged_words):
+            if type(chunk) == nltk.tree.Tree:
+                if chunk.label() == 'PERSON' and len(chunk) > 1:
+                    name = (' '.join([c[0] for c in chunk]))
+                    if name in ppl_and_movies.keys():
+                        ppl_and_movies[name] = ppl_and_movies[name] + 1
+                    else:
+                        ppl_and_movies[name] = 1
+
+    return ppl_and_movies
 
 if __name__ == "__main__":
     main()
