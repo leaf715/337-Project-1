@@ -22,18 +22,39 @@ def main():
     raw_data = open(data_path, "r")
     raw_tweets = json.loads(raw_data.read())
     tweets = []
-    # Strips hashtags, tags, punctuation, and RTs from text and stores text in tweets list
-    # Other preprocessing such as removing stop words can go here
-    for tweet in raw_tweets:
-        text = tweet["text"].split()
-        stripped_text = " ".join(word for word in text if word[0] is not '#' and word[0] is not '@')
-        stripped_text = stripped_text.replace('\'s','')
-        stripped_text = stripped_text.replace('.','')
-        stripped_text = stripped_text.replace(',','')
-        stripped_text = stripped_text.replace('Golden Globes','')
-        if stripped_text.find('RT') != -1:
-            stripped_text = stripped_text[:stripped_text.find('RT')]
-        tweets.append(stripped_text)
+
+    tweets = strip_raw_tweets(raw_tweets, tweets)
+    
+    get_hosts(tweets)
+
+    get_winner_ppl(tweets,award_names)
+
+    # all_presenter_tweets = get_relevant_tweets(['present'], tweets)
+    # all_presenters_m, all_presenters_f = get_people(all_presenter_tweets)
+    # all_presenters = all_presenters_f.union(all_presenters_m)
+    # figure out how to identify movie and tv show names
+    nominees_show = set()
+    winners_show = set()
+
+    return
+
+
+def strip_raw_tweets(raw_tweets,tweets):
+        # Strips hashtags, tags, punctuation, and RTs from text and stores text in tweets list
+        # Other preprocessing such as removing stop words can go here
+        for tweet in raw_tweets:
+            text = tweet["text"].split()
+            stripped_text = " ".join(word for word in text if word[0] is not '#' and word[0] is not '@')
+            stripped_text = stripped_text.replace('\'s','')
+            stripped_text = stripped_text.replace('.','')
+            stripped_text = stripped_text.replace(',','')
+            stripped_text = stripped_text.replace('Golden Globes','')
+            if stripped_text.find('RT') != -1:
+                stripped_text = stripped_text[:stripped_text.find('RT')]
+            tweets.append(stripped_text)
+        return tweets
+
+def get_hosts(tweets):
     # Get tweets that contain the word host
     host_tweets = get_relevant_tweets(["host"], tweets)
     potential_hosts = get_names(host_tweets)
@@ -45,17 +66,7 @@ def main():
     else:
         print('Host: '+potential_hosts[0][0])
 
-    # get all names of potential nominees, winners, and presenters
-    # all_nominee_tweets = get_relevant_tweets(['nominee', 'should\'ve w', 'didn\'t win', 'deserves to win', 'nominate'], tweets)
-    # nominees_m, nominees_f = get_people(all_nominee_tweets)
-    # all_winner_tweets = get_relevant_tweets(['congrat', 'win'], tweets)
-    # winners_m, winners_f = get_people(all_winner_tweets)
-    # all_presenter_tweets = get_relevant_tweets(['present'], tweets)
-    # all_presenters_m, all_presenters_f = get_people(all_presenter_tweets)
-    # all_presenters = all_presenters_f.union(all_presenters_m)
-    # figure out how to identify movie and tv show names
-    nominees_show = set()
-    winners_show = set()
+def get_winner_ppl(tweets,award_names):
     previous_winners_ppl = set()
     # match actors and actresses to awards
     for award in award_names:
@@ -126,7 +137,6 @@ def main():
         previous_winners_ppl.add(winner)
         # winners_m.discard(winner)
         # winners_f.discard(winner)
-    return
 
 # Find winner most associated with award
 def get_winner(possible, tweets):
