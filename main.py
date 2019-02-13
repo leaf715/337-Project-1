@@ -1,5 +1,11 @@
 import json
 import nltk
+nltk.download("stopwords") #getting Certificate error with this in
+nltk.download("punkt")
+nltk.download('averaged_perceptron_tagger')
+nltk.download('maxent_ne_chunker')
+nltk.download('words')
+nltk.download('names')
 # nltk.download("stopwords") #getting Certificate error with this in
 from nltk.corpus import stopwords, names
 stop = stopwords.words('english')
@@ -54,7 +60,7 @@ def main():
     # match actors and actresses to awards
     for award in award_names:
         # preprocess keys given to tweet searcher
-        leftright = award.split('–')
+        leftright = award.split('-')
         keys = leftright[0].split()
         bad_keys = set()
         if len(leftright) > 1:
