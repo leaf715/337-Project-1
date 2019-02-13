@@ -70,6 +70,11 @@ def main():
             if 'Television' in category:
                 category.append('TV')
                 bad_keys.add('Picture')
+            if 'Drama' in category:
+                bad_keys.add('Comedy')
+                bad_keys.add('Musical')
+            if 'Comedy' in category:
+                bad_keys.add('Drama')
             if 'Miniseries' in category:
                 bad_keys.add('Drama')
                 bad_keys.add('Comedy')
