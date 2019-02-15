@@ -1,11 +1,11 @@
 import json
 import nltk
-nltk.download("stopwords") #getting Certificate error with this in
-nltk.download("punkt")
-nltk.download('averaged_perceptron_tagger')
-nltk.download('maxent_ne_chunker')
-nltk.download('words')
-nltk.download('names')
+# nltk.download("stopwords") #getting Certificate error with this in
+# nltk.download("punkt")
+# nltk.download('averaged_perceptron_tagger')
+# nltk.download('maxent_ne_chunker')
+# nltk.download('words')
+# nltk.download('names')
 # nltk.download("stopwords") #getting Certificate error with this in
 from nltk.corpus import stopwords, names
 stop = stopwords.words('english')
@@ -22,21 +22,90 @@ def main():
     raw_data = open(data_path, "r")
     raw_tweets = json.loads(raw_data.read())
     tweets = []
+    unique_keys = {}
+    for award in award_names:
+        keys = award.split(' ')
+        for key in keys:
+            if key == 'Award':
+                break
+            if key in unique_keys.keys():
+                unique_keys[key] += 1
+            else:
+                unique_keys[key] = 1
+    unique_keys = {k:v for k,v in unique_keys.items() if v <= 1}
+    unique_keys = list(unique_keys.keys())
+    unique_keys.append('Supporting')
+    unique_keys.remove('Language')
+    print(unique_keys)
 
     tweets = strip_raw_tweets(raw_tweets, tweets)
     
-    get_hosts(tweets)
+    hosts = get_hosts(tweets)
 
-    get_winner_ppl(tweets,award_names)
+    winners = get_winner_ppl(tweets,award_names)
 
-    # all_presenter_tweets = get_relevant_tweets(['present'], tweets)
-    # all_presenters_m, all_presenters_f = get_people(all_presenter_tweets)
-    # all_presenters = all_presenters_f.union(all_presenters_m)
-    # figure out how to identify movie and tv show names
-    nominees_show = set()
-    winners_show = set()
+    p_tweets = []
+    present_keys = ['present', 'will present', 'is presenting', 'are presenting', 'will be present']
+    for tweet in tweets:
+        for key in present_keys:
+            key = '[A-Z][a-z]* [A-Z][a-z]* '+key
+            if re.search(key,tweet, re.IGNORECASE) and re.search('best', tweet, re.IGNORECASE):
+                p_tweets.append(tweet)
+        if re.search('presented by [A-Z][a-z]* [A-Z][a-z]*', tweet, re.IGNORECASE) and re.search('best', tweet, re.IGNORECASE):
+            p_tweets.append(tweet)
 
-    return
+    # print(len(p_tweets))
+
+    m,f = get_people(p_tweets)
+    p = m.union(f) - winners - hosts
+    for award in award_names:
+        print(' ')
+        relevant = p_tweets
+        keys = award.split(' ')
+        bad_keys = set()
+        if '-' in keys:
+            keys.remove('-')
+            awardnodash = ' '.join(keys)
+            leftright = award.split('-')
+            keys = keys + leftright
+
+        if 'or' in keys:
+            keys.remove('or')
+        # keys = keys + [keys[i] + ' ' + keys[i+1] for i in range(len(keys)-1)]
+        keys.append(awardnodash)
+        if 'Best' in keys:
+            keys.remove('Best')
+        if 'Actor' in keys:
+            relevant = get_relevant_tweets(['Actor'], relevant)
+            if 'Supporting' not in keys:
+                relevant = remove_wrong_section(['Supporting Actor'],relevant)
+        elif 'Actress' in keys:
+            relevant = get_relevant_tweets(['Actress'], relevant)
+            if 'Supporting' not in keys:
+                relevant = remove_wrong_section(['Supporting Actress'],relevant)
+        else:
+            relevant = remove_wrong_section(['Actor', 'Actress'], relevant)
+        total_keys = len(keys)
+        print(keys)
+        for key in keys:
+            if key in unique_keys:
+                relevant = get_relevant_tweets([key], relevant)
+        match_dict = {}
+        for tweet in relevant:
+            keysfound = 0
+            for key in keys:
+                if re.search(key,tweet):
+                    keysfound += 1
+            match_dict[tweet] = float(keysfound)/float(total_keys)
+        sorted_dict = sorted(match_dict.items(), key = lambda x: x[1], reverse=True)
+        top_tweets = []
+        for i in range(int(len(sorted_dict)/2)):
+            k = sorted_dict[i][0]
+            top_tweets.append(k)
+        presenters = get_winner(p,top_tweets)
+        print(award)
+        print(presenters)
+
 
 
 def strip_raw_tweets(raw_tweets,tweets):
@@ -63,8 +132,10 @@ def get_hosts(tweets):
     # get better identifier than if gap was < 100 tweets
     if potential_hosts[1][1] - potential_hosts[0][1] < 100:
         print('CoHosts: '+potential_hosts[0][0]+' and '+potential_hosts[1][0])
+        return set([potential_hosts[0][0], potential_hosts[1][0]])
     else:
         print('Host: '+potential_hosts[0][0])
+        return set([potential_hosts[0][0]])
 
 def get_winner_ppl(tweets,award_names):
     previous_winners_ppl = set()
@@ -97,16 +168,10 @@ def get_winner_ppl(tweets,award_names):
                 bad_keys.add('Comedy')
                 bad_keys.add('Musical')
             else:
-                bad_keys.add('Miniseries')
+                bad_keys.add('series')
         else:
             category = []
-        # if 'Actor' in keys:
-        #     winner_set = winners_m
-        #     # nominees_set = nominees_m
-        # elif 'Actress' in keys:
-        #     winner_set = winners_f
-            # nominees_set = nominees_f
-        # else:
+
         if 'Best' in keys:
             keys.remove('Best')
         if 'Motion' in keys:
@@ -135,8 +200,7 @@ def get_winner_ppl(tweets,award_names):
         print(winner)
         # 4 people in history have won 2 individual awards in the same year I'll take that bet
         previous_winners_ppl.add(winner)
-        # winners_m.discard(winner)
-        # winners_f.discard(winner)
+    return previous_winners_ppl
 
 # Find winner most associated with award
 def get_winner(possible, tweets):
@@ -162,12 +226,11 @@ def get_relevant_tweets(keys, tweets):
 
 # Gets rid of tweets about wrong award because some of them have very similar keys
 def remove_wrong_section(bad_keys, tweets):
-    relevant = tweets
+    relevant = []
     for tweet in tweets:
         for key in bad_keys:
-            if re.search(key, tweet, re.IGNORECASE):
-                relevant.remove(tweet)
-                break
+            if not any(key in tweet for key in bad_keys):
+                relevant.append(tweet)
     return relevant
 
 # Get actor and actress names
