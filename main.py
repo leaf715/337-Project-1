@@ -1,5 +1,6 @@
 import json
 import nltk
+import copy
 # nltk.download("stopwords") #getting Certificate error with this in
 # nltk.download("punkt")
 # nltk.download('averaged_perceptron_tagger')
@@ -22,21 +23,21 @@ def main():
     raw_data = open(data_path, "r")
     raw_tweets = json.loads(raw_data.read())
     tweets = []
-    unique_keys = {}
-    #for award in award_names:
-    #    keys = award.split(' ')
-    #    for key in keys:
-    #        if key == 'Award':
-    #            break
-    #        if key in unique_keys.keys():
-    #            unique_keys[key] += 1
-    #        else:
-    #            unique_keys[key] = 1
-    #unique_keys = {k:v for k,v in unique_keys.items() if v <= 1}
-    #unique_keys = list(unique_keys.keys())
-    #unique_keys.append('Supporting')
-    #unique_keys.remove('Language')
-    #print(unique_keys)
+    all_keys = {}
+    for award in award_names:
+        keys = award.split(' ')
+        for key in keys:
+            if key == 'Award':
+                break
+            if key in all_keys.keys():
+                all_keys[key] += 1
+            else:
+                all_keys[key] = 1
+    unique_keys = {k:v for k,v in all_keys.items() if v <= 1}
+    unique_keys = list(unique_keys.keys())
+    unique_keys.append('Supporting')
+    unique_keys.remove('Language')
+    print(unique_keys)
 
     tweets = strip_raw_tweets(raw_tweets, tweets)
 
@@ -51,69 +52,97 @@ def main():
 
     #hosts = get_hosts(tweets)
 
-    #winners = get_winner_ppl(tweets,award_names)
+    winners = get_winner_ppl(tweets,award_names)
 
-    #p_tweets = []
-    #present_keys = ['present', 'will present', 'is presenting', 'are presenting', 'will be present']
-    #for tweet in tweets:
-    #    for key in present_keys:
-    #        key = '[A-Z][a-z]* [A-Z][a-z]* '+key
-    #        if re.search(key,tweet, re.IGNORECASE) and re.search('best', tweet, re.IGNORECASE):
-    #            p_tweets.append(tweet)
-    #    if re.search('presented by [A-Z][a-z]* [A-Z][a-z]*', tweet, re.IGNORECASE) and re.search('best', tweet, re.IGNORECASE):
-    #        p_tweets.append(tweet)
+    get_presenters(tweets, award_names, unique_keys)
 
-    # print(len(p_tweets))
+def get_presenters(tweets, award_names, unique_keys):
+    p_tweets = []
+    present_keys = ['present', 'will present', 'is presenting', 'are presenting', 'will be present']
+    for tweet in tweets:
+        for key in present_keys:
+            key = '[A-Z][a-z]* [A-Z][a-z]* '+key
+            if re.search(key,tweet, re.IGNORECASE):
+                p_tweets.append(tweet)
+        if re.search('presented by [A-Z][a-z]* [A-Z][a-z]*', tweet, re.IGNORECASE):
+            p_tweets.append(tweet)
 
-    #m,f = get_people(p_tweets)
-    #p = m.union(f) - winners - hosts
-    #for award in award_names:
-    #    print(' ')
-    #    relevant = p_tweets
-    #    keys = award.split(' ')
-    #    bad_keys = set()
-    #    if '-' in keys:
-    #        keys.remove('-')
-    #        awardnodash = ' '.join(keys)
-    #        leftright = award.split('-')
-    #        keys = keys + leftright
-#
-#        if 'or' in keys:
-#            keys.remove('or')
+    # m,f = get_people(p_tweets)
+    # p = m.union(f) - winners - hosts
+    for award in award_names:
+        print(' ')
+        relevant = p_tweets
+        keys = award.split(' ')
+
+        bad_keys = set()
+        if '-' in keys:
+            keys.remove('-')
+            awardnodash = ' '.join(keys)
+            leftright = award.split('-')
+            keys = keys + leftright
+
+        if 'or' in keys:
+            keys.remove('or')
         # keys = keys + [keys[i] + ' ' + keys[i+1] for i in range(len(keys)-1)]
-#        keys.append(awardnodash)
-#        if 'Best' in keys:
-#            keys.remove('Best')
-#        if 'Actor' in keys:
-#            relevant = get_relevant_tweets(['Actor'], relevant)
-#            if 'Supporting' not in keys:
-#                relevant = remove_wrong_section(['Supporting Actor'],relevant)
-#        elif 'Actress' in keys:
-#            relevant = get_relevant_tweets(['Actress'], relevant)
-#            if 'Supporting' not in keys:
-#                relevant = remove_wrong_section(['Supporting Actress'],relevant)
-#        else:
-#            relevant = remove_wrong_section(['Actor', 'Actress'], relevant)
-#        total_keys = len(keys)
-#        print(keys)
-#        for key in keys:
-#            if key in unique_keys:
-#                relevant = get_relevant_tweets([key], relevant)
-#        match_dict = {}
-#        for tweet in relevant:
-#            keysfound = 0
-#            for key in keys:
-#                if re.search(key,tweet):
-#                    keysfound += 1
-#            match_dict[tweet] = float(keysfound)/float(total_keys)
-#        sorted_dict = sorted(match_dict.items(), key = lambda x: x[1], reverse=True)
-#        top_tweets = []
-#        for i in range(int(len(sorted_dict)/2)):
-#            k = sorted_dict[i][0]
-#            top_tweets.append(k)
-#        presenters = get_winner(p,top_tweets)
-#        print(award)
-#        print(presenters)
+        keys.append(awardnodash)
+        if 'Best' in keys:
+            keys.remove('Best')
+        if 'Actor' in keys:
+            relevant = get_relevant_tweets(['Actor'], relevant)
+            if 'Supporting' not in keys:
+                relevant = remove_wrong_section(['Supporting Actor'],relevant)
+        elif 'Actress' in keys:
+            relevant = get_relevant_tweets(['Actress'], relevant)
+            if 'Supporting' not in keys:
+                relevant = remove_wrong_section(['Supporting Actress'],relevant)
+        else:
+            relevant = remove_wrong_section(['Actor', 'Actress'], relevant)
+        if 'Television' in keys:
+            keys.append('TV')
+            relevant = remove_wrong_section(['Picture'], relevant)
+        else:
+            relevant = remove_wrong_section(['TV', 'Television'], relevant)
+        total_keys = len(keys)
+        print(keys)
+        for key in keys:
+            if key in unique_keys:
+                relevant = get_relevant_tweets([key], relevant)
+        match_dict = {}
+        for tweet in relevant:
+            keysfound = 0
+            for key in keys:
+                if re.search(key,tweet, re.IGNORECASE):
+                    keysfound += 1
+            match_dict[tweet] = float(keysfound)/float(total_keys)
+        sorted_dict = sorted(match_dict.items(), key = lambda x: x[1], reverse=True)
+        top_tweets = []
+        for i in range(int(len(sorted_dict)/2)):
+            k = sorted_dict[i][0]
+            top_tweets.append(k)
+        # presenters = get_winner(p,top_tweets)
+        print(award)
+        i = 0
+        keys = keys + award.split(' ')
+        while i < len(sorted_dict):
+            tweet = sorted_dict[i][0]
+            words = tweet.split(' ')
+            presenters = set()
+            j = 0
+            while j < len(words)-1:
+                if words[j].istitle() and words[j] != 'I':
+                    if words[j+1].istitle() and words[j+1] != 'I':
+                        presenters.add(words[j]+' '+words[j+1])
+                        j += 1
+                j += 1
+            goodpresenters = copy.deepcopy(presenters)
+            for potential_p in presenters:
+                for key in keys:
+                    if re.search(key, potential_p, re.IGNORECASE):
+                        goodpresenters.discard(potential_p)
+            if len(goodpresenters) > 0:
+                print(goodpresenters)
+                break
+            i += 1
 
 
 
