@@ -37,7 +37,7 @@ def main():
     unique_keys = list(unique_keys.keys())
     unique_keys.append('Supporting')
     unique_keys.remove('Language')
-    print(unique_keys)
+    (unique_keys)
 
     tweets = strip_raw_tweets(raw_tweets, tweets)
 
@@ -54,7 +54,7 @@ def main():
 
     winners = get_winner_ppl(tweets,award_names)
 
-    get_presenters(tweets, award_names, unique_keys)
+    #get_presenters(tweets, award_names, unique_keys)
 
 def get_presenters(tweets, award_names, unique_keys):
     p_tweets = []
@@ -227,15 +227,15 @@ def get_winner_ppl(tweets,award_names):
         relevant_tweets_keys = get_relevant_tweets(keys, tweets)
         relevant_tweets_uncleaned = get_relevant_tweets(category, relevant_tweets_keys)
         relevant_tweets = remove_wrong_section(bad_keys, relevant_tweets_uncleaned)
-        winner_tweets = get_relevant_tweets(['congrat', 'win'], relevant_tweets)
+        winner_tweets = get_relevant_tweets(['win'], relevant_tweets)
         winners_m, winners_f = get_people(winner_tweets)
         if 'Actor' in keys:
-            winner_set = winners_m - previous_winners_ppl
+            winner_set = winners_m #- previous_winners_ppl
         elif 'Actress' in keys:
-            winner_set = winners_f - previous_winners_ppl
+            winner_set = winners_f #- previous_winners_ppl
         else:
             continue
-        winner = get_winner(winner_set, relevant_tweets)
+        winner = get_winner_m(winner_set)
         print(award)
         print(winner)
         # 4 people in history have won 2 individual awards in the same year I'll take that bet
@@ -246,7 +246,7 @@ def get_winner_movies(tweets,award_names):
     previous_winners_ppl = set()
     # match movies to awards
     for award in award_names:
-        if 'Actor' not in award and 'Actress' not in award and 'Achievement' not in award and 'Director' not in award and 'Miniseries' not in award:
+        if 'Actor' not in award and 'Actress' not in award and 'Achievement' not in award and 'Director' not in award:
             # preprocess keys given to tweet searcher
             leftright = award.split('-')
             keys = leftright[0].split()
@@ -278,6 +278,8 @@ def get_winner_movies(tweets,award_names):
                     bad_keys.add('Musical')
                 if 'Score' in category or 'Score' in keys:
                     bad_keys.add('Song')
+                if 'Song' in category or 'Song' in keys:
+                    bad_keys.add('Score')
                 else:
                     bad_keys.add('series')
             else:
@@ -355,8 +357,8 @@ def remove_wrong_section(bad_keys, tweets):
 
 # Get actor and actress names
 def get_people(tweets):
-    men = set()
-    women = set()
+    men = dict()
+    women = dict()
     for tweet in tweets:
         words = [nltk.word_tokenize(tweet)]
         tagged_words = [nltk.pos_tag(word) for word in words][0]
@@ -367,9 +369,9 @@ def get_people(tweets):
                     name = (' '.join([c[0] for c in chunk]))
                     first = name.split(' ',1)[0]
                     if first in names.words('male.txt'):
-                        men.add(name)
+                        men[name] = men.get(name, 0) + 1
                     if first in names.words('female.txt'):
-                        women.add(name)
+                        women[name] = women.get(name, 0) + 1
 
     return men, women
 
