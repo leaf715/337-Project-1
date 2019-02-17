@@ -40,8 +40,9 @@ def main():
 
     tweets = strip_raw_tweets(raw_tweets, tweets)
 
-    winnersMov = get_relevant_tweets(['Best'], tweets)
-    movies = get_movie_names(winnersMov)
+    winnersMov = get_relevant_tweets(['Congratulations'], tweets)
+    movies = get_movie_names2(winnersMov)
+    #print movies
 
 
 
@@ -126,6 +127,8 @@ def strip_raw_tweets(raw_tweets,tweets):
             stripped_text = stripped_text.replace('.','')
             stripped_text = stripped_text.replace(',','')
             stripped_text = stripped_text.replace('Golden Globes','')
+            stripped_text = stripped_text.replace('@','')
+            stripped_text = stripped_text.replace('#','')
             if stripped_text.find('RT') != -1:
                 stripped_text = stripped_text[:stripped_text.find('RT')]
             tweets.append(stripped_text)
@@ -219,6 +222,9 @@ def get_winner_movies(tweets,award_names):
             leftright = award.split('-')
             keys = leftright[0].split()
             bad_keys = set()
+            bad_keys.add('Actor')
+            bad_keys.add('Actress')
+            bad_keys.add('Director')
             if len(leftright) > 1:
                 category = leftright[1].split()
                 if 'or' in category:
@@ -267,11 +273,13 @@ def get_winner_movies(tweets,award_names):
             relevant_tweets_uncleaned = get_relevant_tweets(category, relevant_tweets_keys)
             relevant_tweets = remove_wrong_section(bad_keys, relevant_tweets_uncleaned)
             winner_tweets = get_relevant_tweets(['congrat', 'win'], relevant_tweets)
-            mentioned = get_movie_names(winner_tweets)
+            mentioned = get_movie_names2(winner_tweets)
             winner = get_winner_m(mentioned)
-            mention = cleanDict(mentioned,10)
+            mention = cleanDict(mentioned,3)
             print(award)
             print(winner)
+            #for tweet in winner_tweets:
+            #    print(tweet)
 
     return previous_winners_ppl
 
@@ -375,6 +383,40 @@ def get_movie_names(tweets):
                     currentlyCap = True
                     poss_title = word
                     wordsInTitle = 1
+    return possible_movies_dict
+
+def get_movie_names2(tweets):
+    possible_movies_dict = dict()
+
+    for tweet in tweets:
+        result = re.search('Congratulations(.*)win', tweet)
+        result2 = re.search('winner is(.*)for', tweet)
+        result3 = re.search('Congrats(.*)win', tweet)
+        result4 = re.search('(.*)wins', tweet)
+        if result:
+            movName = result.group(1)
+            movName = movName.replace('to ','')
+            movName = movName.replace('for ','')
+            movName = movName.replace('on ','')
+            possible_movies_dict[movName] = possible_movies_dict.get(movName, 0) + 1
+        if result2:
+            movName = result2.group(1)
+            movName = movName.replace('to ','')
+            movName = movName.replace('for ','')
+            movName = movName.replace('on ','')
+            possible_movies_dict[movName] = possible_movies_dict.get(movName, 0) + 1
+        if result3:
+            movName = result3.group(1)
+            movName = movName.replace('to ','')
+            movName = movName.replace('for ','')
+            movName = movName.replace('on ','')
+            possible_movies_dict[movName] = possible_movies_dict.get(movName, 0) + 1
+        if result4:
+            movName = result4.group(1)
+            movName = movName.replace('to ','')
+            movName = movName.replace('for ','')
+            movName = movName.replace('on ','')
+            possible_movies_dict[movName] = possible_movies_dict.get(movName, 0) + 1
     return possible_movies_dict
 
 def isNotCommonWord(word):
