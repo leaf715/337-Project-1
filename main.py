@@ -40,19 +40,23 @@ def main():
     (unique_keys)
 
     tweets = strip_raw_tweets(raw_tweets, tweets)
+    winner_tweets = get_relevant_tweets(['congrat', 'win'], tweets)
 
-    winnersMov = get_relevant_tweets(['Congratulations'], tweets)
-    movies = get_movie_names2(winnersMov)
-    #print movies
+    #redCpt = get_relevant_tweets(['Red Carpet'], tweets)
+    #winners_m, winners_f = get_people(redCpt)
+    #MostTalkedGuys = get_winner_m2(winners_m)
+    #MostTalkedGals = get_winner_m2(winners_f)
+    #print MostTalkedGuys
+    #print MostTalkedGals
 
 
-    get_nominees_movies(tweets,award_names)
-    #get_winner_movies(tweets,award_names)
+    #get_nominees_movies(winner_tweets,award_names)
+    get_winner_movies(winner_tweets,award_names)
 
 
     #hosts = get_hosts(tweets)
 
-    #winners = get_winner_ppl(tweets,award_names)
+    winners = get_winner_ppl(winner_tweets,award_names)
 
     #get_presenters(tweets, award_names, unique_keys)
 
@@ -296,8 +300,8 @@ def get_winner_ppl(tweets,award_names):
         relevant_tweets_keys = get_relevant_tweets(keys, tweets)
         relevant_tweets_uncleaned = get_relevant_tweets(category, relevant_tweets_keys)
         relevant_tweets = remove_wrong_section(bad_keys, relevant_tweets_uncleaned)
-        winner_tweets = get_relevant_tweets(['win'], relevant_tweets)
-        winners_m, winners_f = get_people(winner_tweets)
+        winner_tweets = get_relevant_tweets(['win','congrats'], relevant_tweets)
+        winners_m, winners_f = get_people2(winner_tweets)
         if 'Actor' in keys:
             winner_set = winners_m #- previous_winners_ppl
         elif 'Actress' in keys:
@@ -457,8 +461,43 @@ def get_people(tweets):
                         women[name] = women.get(name, 0) + 1
 
     return men, women
+def get_people2(tweets):
+    men = dict()
+    women = dict()
+    possible_movies_dict = dict()
 
-#gets possible movie names from
+    for tweet in tweets:
+        result = re.search('Congratulations(.*)win', tweet)
+        result2 = re.search('winner is(.*)for', tweet)
+        result3 = re.search('Congrats(.*)win', tweet)
+        result4 = re.search('(.*)wins', tweet)
+        oneIsTrue = False
+        if result:
+            movName = result.group(1)
+            oneIsTrue = True
+        if result2:
+            movName = result2.group(1)
+            oneIsTrue = True
+        if result3:
+            movName = result3.group(1)
+            oneIsTrue = True
+        if result4:
+            movName = result4.group(1)
+            oneIsTrue = True
+        if oneIsTrue and len(movName.split()) <3 and len(movName.split()) >1:
+            movName = movName.replace('to ','')
+            movName = movName.replace('for ','')
+            movName = movName.replace('on ','')
+            movName = movName.replace("'","'")
+            name = movName.split()
+            if name[0]:
+                if name[0] in names.words('male.txt'):
+                    men[movName] = men.get(movName, 0) + 1
+                if name[0] in names.words('female.txt'):
+                    women[movName] = women.get(movName, 0) + 1
+
+    return men, women
+#gets possible movie names from tweets/not used anymore
 def get_movie_names(tweets):
     possible_movies_dict = dict()
     possible_movies = set()
@@ -498,7 +537,7 @@ def get_movie_names(tweets):
                     poss_title = word
                     wordsInTitle = 1
     return possible_movies_dict
-
+#GetWinnerMovieName
 def get_movie_names2(tweets):
     possible_movies_dict = dict()
 
@@ -527,7 +566,7 @@ def get_movie_names2(tweets):
             movName = movName.replace("'","'")
             possible_movies_dict[movName] = possible_movies_dict.get(movName, 0) + 1
     return possible_movies_dict
-
+#nominated getMovieName
 def get_movie_names3(tweets):
     possible_movies_dict = dict()
 
