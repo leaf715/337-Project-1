@@ -56,7 +56,7 @@ def gg_parser(award_names, data_path):
     year = data_path[2:6]
     f = open('gg%sresults.json'%year,'w+')
     f.write(json_dict)
-    f.write(awards)
+    f.write(json.dumps(awards))
 
 
     #get_nominees_movies(winner_tweets,award_names)
