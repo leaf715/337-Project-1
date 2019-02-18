@@ -46,7 +46,7 @@ def main():
 
     hosts = get_hosts(tweets)
 
-    #master(tweets,award_names, unique_keys)
+    master(tweets,award_names, unique_keys)
     #get_nominees_movies(winner_tweets,award_names)
     #get_winner_movies(winner_tweets,award_names)
 
@@ -227,6 +227,7 @@ def get_presenters(p_tweets, award, unique_keys, winner):
                     j += 1
             j += 1
         goodpresenters = copy.deepcopy(presenters)
+        goodpresenters.discard(winner)
         for potential_p in presenters:
             for key in keys:
                 if potential_p == winner:
@@ -333,12 +334,12 @@ def get_hosts(tweets):
 
     hostDict = get_winner_m3(potential_hosts2)
 
-    if float(hostDict[hostDict.keys()[1]]) / float(hostDict[hostDict.keys()[0]]) > 0.8:
-        print('CoHosts: '+hostDict.keys()[0]+' and '+hostDict.keys()[1])
-        return set([hostDict.keys()[0], hostDict.keys()[1]])
+    if float(hostDict[list(hostDict.keys())[1]]) / float(hostDict[list(hostDict.keys())[0]]) > 0.8:
+        print('CoHosts: '+list(hostDict.keys())[0]+' and '+list(hostDict.keys())[1])
+        return set([list(hostDict.keys())[0], list(hostDict.keys())[1]])
     else:
         print('Host: '+hostDict.keys()[0])
-        return set([hostDict.keys()[0]])
+        return set([list(hostDict.keys())[0]])
 
 def get_winner_ppl(tweets,award_names):
     previous_winners_ppl = set()
