@@ -44,9 +44,9 @@ def main():
 
     #get_red_carpet(tweets)
 
-    # hosts = get_hosts(tweets)
+    hosts = get_hosts(tweets)
 
-    master(tweets,award_names, unique_keys)
+    #master(tweets,award_names, unique_keys)
     #get_nominees_movies(winner_tweets,award_names)
     #get_winner_movies(winner_tweets,award_names)
 
@@ -303,37 +303,42 @@ def get_people_rc2(tweets):
     bad = ['Red','Carpet','Dress']
     for tweet in tweets:
         poss_name = re.search("[A-Z][a-z]* [A-Z][a-z]*", tweet)
+        tweet2 = ""
         if poss_name:
             #print poss_name.groupdict()
             name = poss_name.group(0)
+            tweet2 = tweet.replace(name, '')
             first = name.split(' ',1)[0]
             last =  name.split(' ',1)[1]
             if first not in bad and last not in bad:
                 if name in people or first in names.words('male.txt') or first in names.words('female.txt'):
                     people[name] = people.get(name, 0) + 1
-
+            poss_name2 = re.search("[A-Z][a-z]* [A-Z][a-z]*", tweet2)
+            if poss_name2:
+                #print poss_name.groupdict()
+                name2 = poss_name2.group(0)
+                first2 = name2.split(' ',1)[0]
+                last2 =  name2.split(' ',1)[1]
+                if first2 not in bad and last2 not in bad:
+                    if name2 in people or first2 in names.words('male.txt') or first2 in names.words('female.txt'):
+                        people[name2] = people.get(name2, 0) + 1
     return people
 
 def get_hosts(tweets):
     # Get tweets that contain the word host
     host_tweets = get_relevant_tweets(["host"], tweets)
-    potential_hosts = get_names(host_tweets)
+
     potential_hosts2 = get_people_rc2(host_tweets)
-    potential_hosts2 = cleanDict(potential_hosts2,10)
-    #print potential_hosts2
+    potential_hosts2 = cleanDict(potential_hosts2,5)
 
+    hostDict = get_winner_m3(potential_hosts2)
 
-    potential_hosts = sorted(potential_hosts.items(), key = lambda x: x[1], reverse=True)
-
-    # if top two results are close, then there were cohosts
-    # get better identifier than if gap was < 100 tweets
-    print(potential_hosts[0],  potential_hosts[1])
-    if potential_hosts[0][1] / potential_hosts[1][1] > 0.8:
-        print('CoHosts: '+potential_hosts[0][0]+' and '+potential_hosts[1][0])
-        return set([potential_hosts[0][0], potential_hosts[1][0]])
+    if float(hostDict[hostDict.keys()[1]]) / float(hostDict[hostDict.keys()[0]]) > 0.8:
+        print('CoHosts: '+hostDict.keys()[0]+' and '+hostDict.keys()[1])
+        return set([hostDict.keys()[0], hostDict.keys()[1]])
     else:
-        print('Host: '+potential_hosts[0][0])
-        return set([potential_hosts[0][0]])
+        print('Host: '+hostDict.keys()[0])
+        return set([hostDict.keys()[0]])
 
 def get_winner_ppl(tweets,award_names):
     previous_winners_ppl = set()
@@ -496,6 +501,20 @@ def get_winner_m2(mentioned):
         nomKeys.add(winningKey)
     return nomKeys
 
+def get_winner_m3(mentioned):
+    nomKeys = dict()
+    for x in range(2):
+        maxv = 0
+        winningKey = ""
+        for key in mentioned:
+            v = mentioned[key]
+            if v > maxv:
+                maxv = v
+                winningKey = key
+        nomKeys[winningKey] = mentioned[winningKey]
+        mentioned[winningKey] = 0
+
+    return nomKeys
 # Find winner most associated with award
 def get_winner(possible, tweets):
     match_dict = dict((name, 0) for name in list(possible))
