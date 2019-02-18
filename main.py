@@ -27,7 +27,7 @@ def main():
     for award in award_names:
         keys = award.split(' ')
         for key in keys:
-            if key == 'Award':
+            if key == 'award':
                 break
             if key in all_keys.keys():
                 all_keys[key] += 1
@@ -35,18 +35,21 @@ def main():
                 all_keys[key] = 1
     unique_keys = {k:v for k,v in all_keys.items() if v <= 1}
     unique_keys = list(unique_keys.keys())
-    unique_keys.append('Supporting')
-    unique_keys.remove('Language')
-    (unique_keys)
-
+    unique_keys.append('supporting')
+    unique_keys.remove('language')
 
     tweets = strip_raw_tweets(raw_tweets, tweets)
 
     #get_red_carpet(tweets)
 
     hosts = get_hosts(tweets)
+    json_dict = {'hosts':list(hosts)}
+    award_dict = master(tweets,award_names, unique_keys)
 
-    master(tweets,award_names, unique_keys)
+    json_dict['award_data'] =award_dict
+    json_dict = json.dumps(json_dict)
+    print(json_dict)
+
     #get_nominees_movies(winner_tweets,award_names)
     #get_winner_movies(winner_tweets,award_names)
 
@@ -56,6 +59,7 @@ def main():
 
 def master(tweets, awards, unique_keys):
     p_tweets = []
+    json_dict = {}
     present_keys = ['present', 'will present', 'is presenting', 'are presenting', 'will be present']
     for tweet in tweets:
         for key in present_keys:
@@ -66,7 +70,16 @@ def master(tweets, awards, unique_keys):
             p_tweets.append(tweet)
 
     for award in awards:
-        print("\n")
+        og_award = award
+        award = award.replace(' by ', ' ')
+        award = award.replace(' an ', ' ')
+        award = award.replace(' in ', ' ')
+        award = award.replace(' a ', ' ')
+        award = award.replace(' performance ', ' ')
+        award = award.replace(' any ', ' - ')
+        award = award.replace(' for ', ' ')
+        award = award.replace(' made ', ' ')
+        print("")
         tv_or_movie_tweets = copy.deepcopy(tweets)
         leftright = award.split('-')
         keys = leftright[0].split()
@@ -77,65 +90,63 @@ def master(tweets, awards, unique_keys):
             category.append(leftright[1])
             if 'or' in category:
                 category.remove('or')
-            if 'Motion' in category:
-                category.remove('Motion')
-                bad_keys.add('TV')
-                bad_keys.add('Television')
-            if 'Picture' in category:
-                category.append('Film')
-                bad_keys.add('TV')
-                bad_keys.add('Television')
-            if 'Television' in category:
-                tv_or_movie_tweets = get_relevant_tweets(['TV','Television'], tweets)
-                bad_keys.add('Picture')
-                bad_keys.add('Movie')
-            if 'Drama' in category:
-                bad_keys.add('Comedy')
-                bad_keys.add('Musical')
-                bad_keys.add('Animated')
-            if 'Animated' in category:
-                bad_keys.add('Comedy')
-                bad_keys.add('Musical')
-                bad_keys.add('Drama')
-            if 'Comedy' in category:
-                bad_keys.add('Drama')
-                bad_keys.add('Animated')
-            if 'Miniseries' in category or 'Miniseries' in keys:
+            if 'motion' in category:
+                category.remove('motion')
+                bad_keys.add('tv')
+                bad_keys.add('television')
+            if 'picture' in category:
+                category.append('film')
+            if 'television' in category:
+                tv_or_movie_tweets = get_relevant_tweets(['tv','television'], tweets)
+                bad_keys.add('picture')
+                bad_keys.add('movie')
+            if 'drama' in category:
+                bad_keys.add('comedy')
+                bad_keys.add('musical')
+                bad_keys.add('animated')
+            if 'animated' in category:
+                bad_keys.add('comedy')
+                bad_keys.add('musical')
+                bad_keys.add('drama')
+            if 'comedy' in category:
+                bad_keys.add('drama')
+                bad_keys.add('animated')
+            if 'miniseries' in category or 'miniseries' in keys:
                 category.append('series')
-                bad_keys.add('Drama')
-                bad_keys.add('Comedy')
-                bad_keys.add('Musical')
-                bad_keys.add('Song')
-                bad_keys.add('Score')
-                bad_keys.add('Picture')
-            if 'Score' in category or 'Score' in keys:
-                bad_keys.add('Song')
-            if 'Song' in category or 'Song' in keys:
-                bad_keys.add('Score')
+                bad_keys.add('drama')
+                bad_keys.add('comedy')
+                bad_keys.add('musical')
+                bad_keys.add('song')
+                bad_keys.add('score')
+                bad_keys.add('picture')
+            if 'score' in category or 'score' in keys:
+                bad_keys.add('song')
+            if 'song' in category or 'song' in keys:
+                bad_keys.add('score')
 
         else:
             category = []
-        if 'Supporting' not in keys:
-            bad_keys.add('Supporting')
+        if 'supporting' not in keys:
+            bad_keys.add('supporting')
         else:
             bad_keys.add('series')
-        if 'Best' in keys:
-            keys.remove('Best')
-        if 'Motion' in keys:
-            keys.remove('Motion')
-        if 'Picture' in keys:
-            keys.append('Film')
-            bad_keys.add('TV')
-            bad_keys.add('Television')
-        if 'Television' in keys:
-            tv_or_movie_tweets = get_relevant_tweets(['TV','Television'], tweets)
+        if 'best' in keys:
+            keys.remove('best')
+        if 'motion' in keys:
+            keys.remove('motion')
+            bad_keys.add('tv')
+            bad_keys.add('television')
+        if 'picture' in keys:
+            keys.append('film')
+        if 'television' in keys:
+            tv_or_movie_tweets = get_relevant_tweets(['tv','television'], tweets)
             bad_keys.add('Picture')
-        if 'Miniseries' in keys:
+        if 'miniseries' in keys:
             keys.append('series')
-        if 'Actor' not in award and 'Actress' not in award:
+        if 'actor' not in award and 'actress' not in award:
             peopleAward = False
-            bad_keys.add('Actor')
-            bad_keys.add('Actress')
+            bad_keys.add('actor')
+            bad_keys.add('actress')
         else:
             peopleAward = True
 
@@ -148,12 +159,12 @@ def master(tweets, awards, unique_keys):
         relevant_tweets = remove_wrong_section(bad_keys, relevant_tweets_uncleaned)
         winner_tweets = get_relevant_tweets(['congrat', 'win'], relevant_tweets)
         if peopleAward:
-            if 'Supporting' in keys:
-                winner_tweets = get_relevant_tweets(['Supporting'], winner_tweets)
+            if 'supporting' in keys:
+                winner_tweets = get_relevant_tweets(['supporting'], winner_tweets)
             winners_m, winners_f = get_people_rc(winner_tweets)
-            if 'Actor' in keys:
+            if 'actor' in keys:
                 mentioned = winners_m #- previous_winners_ppl
-            elif 'Actress' in keys:
+            elif 'actress' in keys:
                 mentioned = winners_f #- previous_winners_ppl
             else:
                 continue
@@ -162,9 +173,12 @@ def master(tweets, awards, unique_keys):
         winner = get_winner_m(mentioned)
 
         presenters = get_presenters(p_tweets, award, unique_keys, winner)
-        print(award)
+        print(og_award)
         print(winner)
         print(presenters)
+        nominees = ""
+        json_dict[og_award] = {'presenters':presenters, 'winner':winner,'nominees':nominees}
+    return json_dict
 
 def get_presenters(p_tweets, award, unique_keys, winner):
     relevant = copy.deepcopy(p_tweets)
@@ -180,23 +194,23 @@ def get_presenters(p_tweets, award, unique_keys, winner):
     if 'or' in keys:
         keys.remove('or')
     keys.append(awardnodash)
-    if 'Best' in keys:
-        keys.remove('Best')
-    if 'Actor' in keys:
-        relevant = get_relevant_tweets(['Actor'], relevant)
-        if 'Supporting' not in keys:
-            relevant = remove_wrong_section(['Supporting Actor'],relevant)
-    elif 'Actress' in keys:
-        relevant = get_relevant_tweets(['Actress'], relevant)
-        if 'Supporting' not in keys:
-            relevant = remove_wrong_section(['Supporting Actress'],relevant)
+    if 'best' in keys:
+        keys.remove('best')
+    if 'actor' in keys:
+        relevant = get_relevant_tweets(['actor'], relevant)
+        if 'supporting' not in keys:
+            relevant = remove_wrong_section(['supporting actor'],relevant)
+    elif 'actress' in keys:
+        relevant = get_relevant_tweets(['actress'], relevant)
+        if 'supporting' not in keys:
+            relevant = remove_wrong_section(['supporting actress'],relevant)
     else:
-        relevant = remove_wrong_section(['Actor', 'Actress'], relevant)
-    if 'Television' in keys:
+        relevant = remove_wrong_section(['actor', 'actress'], relevant)
+    if 'television' in keys:
         keys.append('TV')
-        relevant = remove_wrong_section(['Picture'], relevant)
+        relevant = remove_wrong_section(['picture'], relevant)
     else:
-        relevant = remove_wrong_section(['TV', 'Television'], relevant)
+        relevant = remove_wrong_section(['tv', 'television'], relevant)
     total_keys = len(keys)
     for key in keys:
         if key in unique_keys:
@@ -235,8 +249,7 @@ def get_presenters(p_tweets, award, unique_keys, winner):
                 if re.search(key, potential_p, re.IGNORECASE):
                     goodpresenters.discard(potential_p)
         if len(goodpresenters) > 0:
-            return(goodpresenters)
-            break
+            return list(goodpresenters)
         i += 1
 
 def strip_raw_tweets(raw_tweets,tweets):
@@ -353,10 +366,10 @@ def get_winner_ppl(tweets,award_names):
             category = leftright[1].split()
             if 'or' in category:
                 category.remove('or')
-            if 'Motion' in category:
-                category.remove('Motion')
-            if 'Picture' in category:
-                category.append('Film')
+            if 'motion' in category:
+                category.remove('motion')
+            if 'picture' in category:
+                category.append('film')
                 bad_keys.add('TV')
                 bad_keys.add('Television')
             if 'Television' in category:

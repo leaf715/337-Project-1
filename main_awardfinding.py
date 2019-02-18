@@ -26,14 +26,14 @@ def main():
     tweets = strip_raw_tweets(raw_tweets, tweets)
     print(len(tweets))
     nlp_awards = get_award_names(tweets)
-    print(nlp_awards)
+    print(nlp_awards[0:27])
 
 def get_award_names(tweets):
     award_dict = {}
     for tweet in tweets:
-        tweet.replace('!','')
-        tweet.replace('.','')
-        tweet.replace(':','')
+        tweet = tweet.replace('!','')
+        tweet = tweet.replace('.','')
+        tweet = tweet.replace(':','')
         words = tweet.split(' ')
         if 'Best' in words:
             i = words.index('Best')
@@ -77,7 +77,8 @@ def strip_raw_tweets(raw_tweets,tweets):
             stripped_text = stripped_text.replace('\'s','')
             stripped_text = stripped_text.replace('.','')
             stripped_text = stripped_text.replace(',','')
-            stripped_text = stripped_text.replace('Golden Globes','')
+            stripped_text = stripped_text.replace('Golden','')
+            stripped_text = stripped_text.replace('Globes','')
             stripped_text = stripped_text.replace('@','')
             stripped_text = stripped_text.replace('#','')
             if stripped_text.find('RT') != -1:
