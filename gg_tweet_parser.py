@@ -49,14 +49,13 @@ def gg_parser(award_names, data_path):
     hosts = get_hosts(tweets)
     json_dict = {'hosts':list(hosts)}
     award_dict = master(tweets,award_names, unique_keys)
-
+    json_dict['awards_found'] = awards
     json_dict['award_data'] =award_dict
     json_dict = json.dumps(json_dict)
 
     year = data_path[2:6]
     f = open('gg%sresults.json'%year,'w+')
     f.write(json_dict)
-    f.write(json.dumps(awards))
 
 
     #get_nominees_movies(winner_tweets,award_names)
@@ -185,9 +184,34 @@ def master(tweets, awards, unique_keys):
         print(og_award)
         print(winner)
         print(presenters)
-        nominees = ""
+        nominees = getNominees(tweets, award, winner)
         json_dict[og_award] = {'presenters':presenters, 'winner':winner,'nominees':nominees}
     return json_dict
+
+def getNominees(tweets,award,winner):
+    myNoms = list()
+    winnerTweets = get_relevant_tweets([winner],tweets)
+    words = ['didn\'t win','should\'ve won','should of won','did not win','deserved to win','not win']
+    FirstWords = ['didn\'t','should\'ve','should','did','deserved']
+    winnerTweets2 = get_relevant_tweets(words,winnerTweets)
+    for t in winnerTweets2:
+        t.replace('!',' !')
+        t.replace('.',' .')
+        t.replace(':',' ')
+        mwords = t.split(' ')
+        for word in FirstWords:
+            if word in mwords:
+                i = mwords.index(word)
+                if i > 1 and mwords[i-1] not in myNoms:
+                    if mwords[i-2].istitle():
+                        ms = mwords[i-2] + " " + mwords[i-1]
+                    else:
+                        ms = mwords[i-1]
+                    if ms not in myNoms:
+                        myNoms.append(ms)
+    return myNoms
+
+
 
 def get_presenters(p_tweets, award, unique_keys, winner):
     relevant = copy.deepcopy(p_tweets)
