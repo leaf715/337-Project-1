@@ -229,6 +229,8 @@ def get_presenters(p_tweets, award, unique_keys, winner):
         goodpresenters = copy.deepcopy(presenters)
         for potential_p in presenters:
             for key in keys:
+                if potential_p == winner:
+                    goodpresenters.discard(winner)
                 if re.search(key, potential_p, re.IGNORECASE):
                     goodpresenters.discard(potential_p)
         if len(goodpresenters) > 0:
@@ -245,7 +247,8 @@ def strip_raw_tweets(raw_tweets,tweets):
             stripped_text = stripped_text.replace('\'s','')
             stripped_text = stripped_text.replace('.','')
             stripped_text = stripped_text.replace(',','')
-            stripped_text = stripped_text.replace('Golden Globes','')
+            stripped_text = stripped_text.replace('Golden','')
+            stripped_text = stripped_text.replace('Globes','')
             stripped_text = stripped_text.replace('@','')
             stripped_text = stripped_text.replace('#','')
             stripped_text = stripped_text.replace('"', '')
