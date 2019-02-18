@@ -40,7 +40,8 @@ def main():
 
     tweets = strip_raw_tweets(raw_tweets, tweets)
 
-    #get_red_carpet(tweets)
+    get_red_carpet(tweets)
+    awards = getAwards(tweets)
 
 
     hosts = get_hosts(tweets)
@@ -275,6 +276,57 @@ def strip_raw_tweets(raw_tweets,tweets):
                 stripped_text = stripped_text[:stripped_text.find('RT')]
             tweets.append(stripped_text)
         return tweets
+
+def getAwards(tweets):
+    award_dict = {}
+    for tweet in tweets:
+        tweet.replace('!',' !')
+        tweet.replace('.',' .')
+        tweet.replace(':',' ')
+        words = tweet.split(' ')
+        if 'Best' in words:
+            i = words.index('Best')
+            award = []
+            other_words = ['for', 'in', 'a','the',':','and','goes','.','!']
+            while i < len(words):
+                if words[i] == 'At':
+                    break
+                if words[i].istitle():
+                    award.append(words[i])
+                elif words[i] in other_words:
+                    if i+1 < len(words):
+                        if words[i+1].istitle():
+                            award.append(words[i]+' '+words[i+1])
+                            i += 1
+                        else:
+                            break
+                else:
+                    break
+                i += 1
+            if len(award) > 1 and len(award) < 7:
+                award = ' '.join(award)
+                award_dict[award] = award_dict.get(award, 0) + 1
+
+    award_dict = cleanDict(award_dict,5)
+    #award_dict = sorted(award_dict.items(), key = lambda x: x[1], reverse=True)
+    #print award_dict
+
+    nomKeys = set()
+    for x in range(30):
+        maxv = 0
+        winningKey = ""
+        for key in award_dict:
+            v = award_dict[key]
+            if v > maxv:
+                maxv = v
+                winningKey = key
+        award_dict[winningKey] = 0
+        nomKeys.add(winningKey)
+    print "List of Awards: \n"
+    for i in nomKeys:
+        print i
+    print "\n"
+    return nomKeys
 
 def get_red_carpet(tweets):
     rcTweets =  get_relevant_tweets(['red carpet'], tweets)
