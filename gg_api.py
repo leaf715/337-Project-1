@@ -2,7 +2,7 @@
 import json
 import nltk
 import copy
-from gg_program import gg_parser
+from gg_tweet_parser import gg_parser
 from nltk.corpus import stopwords, names
 stop = stopwords.words('english')
 # http://www.nltk.org/
@@ -29,7 +29,8 @@ def get_hosts(year):
 def get_awards(year):
     '''Awards is a list of strings. Do NOT change the name
     of this function or what it returns.'''
-    awards = OFFICIAL_AWARDS_1315
+    fres = get_answers(year)
+    awards = fres['awards_found']
     return awards
 
 def get_nominees(year):
@@ -37,9 +38,8 @@ def get_nominees(year):
     names as keys, and each entry a list of strings. Do NOT change
     the name of this function or what it returns.'''
     # Your code here
-    with open('gg%sanswers.json'%year, 'r') as f:
-        fres = json.load(f)
-    nominees = {award: fres['award_data'][award]['nominees'] for award in OFFICIAL_AWARDS}
+    fres = get_answers(year)
+    nominees = {award: fres['award_data'][award]['nominees'] for award in OFFICIAL_AWARDS_1315}
     return nominees
 
 def get_winner(year):
