@@ -38,19 +38,17 @@ def main():
     unique_keys.append('Supporting')
     unique_keys.remove('Language')
     (unique_keys)
+
+
     tweets = strip_raw_tweets(raw_tweets, tweets)
 
+    get_red_carpet(tweets)
+
+    hosts = get_hosts(tweets)
+
     master(tweets,award_names)
-    #winner_tweets = get_relevant_tweets(['win'], tweets)
-
-    #print "RealStuff"
-    #get_red_carpet(tweets)
-
     #get_nominees_movies(winner_tweets,award_names)
     #get_winner_movies(winner_tweets,award_names)
-
-
-    #hosts = get_hosts(tweets)
 
     #get_winner_ppl(winner_tweets,award_names)
 
@@ -58,6 +56,7 @@ def main():
 
 def master(tweets, awards):
     for award in awards:
+        print "\n"
         leftright = award.split('-')
         keys = leftright[0].split()
         bad_keys = set()
@@ -274,10 +273,22 @@ def get_red_carpet(tweets):
     #for i in rcTweets:
         #print i
     mostMentionedM,mostMentionedF = get_people_rc(rcTweets)
-    print get_winner_m2(mostMentionedF)
-    print get_winner_m2(mostMentionedM)
+    print "Five Most Mentioned Women:"
+    for i in get_winner_m2(mostMentionedF):
+        print i + " "
+    print "\nFive Most Mentioned Men:"
+    for i in get_winner_m2(mostMentionedM):
+        print i + " "
 
     bestTweets = get_relevant_tweets(['best dressed'], tweets)
+    bestDressedM,bestDressedF = get_people_rc(bestTweets)
+    print "\nBest Dressed Man: "+get_winner_m(bestDressedM)
+    print "\nBest Dressed Woman: "+ get_winner_m(bestDressedF)
+
+    worstTweets = get_relevant_tweets(['worst dressed'], tweets)
+    worstDressedM,worstDressedF = get_people_rc(worstTweets)
+    print "\nWorst Dressed Man: " + get_winner_m(worstDressedM)
+    print "\nWorst Dressed Woman: " + get_winner_m(worstDressedF)
 
 # Get actor and actress names
 def get_people_rc(tweets):
@@ -305,7 +316,8 @@ def get_hosts(tweets):
     potential_hosts = sorted(potential_hosts.items(), key = lambda x: x[1], reverse=True)
     # if top two results are close, then there were cohosts
     # get better identifier than if gap was < 100 tweets
-    if potential_hosts[1][1] - potential_hosts[0][1] < 100:
+    print potential_hosts[0],  potential_hosts[1]
+    if potential_hosts[0][1] / potential_hosts[1][1] > 0.8:
         print('CoHosts: '+potential_hosts[0][0]+' and '+potential_hosts[1][0])
         return set([potential_hosts[0][0], potential_hosts[1][0]])
     else:
