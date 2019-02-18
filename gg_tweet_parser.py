@@ -181,10 +181,12 @@ def master(tweets, awards, unique_keys):
         winner = get_winner_m(mentioned)
 
         presenters = get_presenters(p_tweets, award, unique_keys, winner)
-        print(og_award)
-        print(winner)
-        print(presenters)
+        print('Award name: %s'%og_award)
+        # print(og_award)
+        print('Winner: %s'%winner)
+        print('Presenter(s): '+', '.join(presenters))
         nominees = getNominees(tweets, award, winner)
+        print('Nominees: '+', '.join(nominees))
         json_dict[og_award] = {'presenters':presenters, 'winner':winner,'nominees':nominees}
     return json_dict
 
@@ -352,6 +354,7 @@ def getAwards(tweets):
                 winningKey = key
         award_dict[winningKey] = 0
         nomKeys.add(winningKey)
+    print("\n")
     print("List of Awards: \n")
     for i in nomKeys:
         print(i)
