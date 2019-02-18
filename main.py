@@ -44,7 +44,7 @@ def main():
 
     #get_red_carpet(tweets)
 
-    hosts = get_hosts(tweets)
+    #hosts = get_hosts(tweets)
 
     master(tweets,award_names, unique_keys)
     #get_nominees_movies(winner_tweets,award_names)
@@ -250,6 +250,9 @@ def strip_raw_tweets(raw_tweets,tweets):
             stripped_text = stripped_text.replace(',','')
             stripped_text = stripped_text.replace('Golden','')
             stripped_text = stripped_text.replace('Globes','')
+            stripped_text = stripped_text.replace('Globe','')
+            stripped_text = stripped_text.replace('Awards','')
+            stripped_text = stripped_text.replace('Award','')
             stripped_text = stripped_text.replace('@','')
             stripped_text = stripped_text.replace('#','')
             stripped_text = stripped_text.replace('"', '')
