@@ -10,3 +10,6 @@ To Run:
 make sure data files are there we couldn't upload gg2015.json to github
 adjust hardcoded award names and file name in award_show.config
 run python3 gg_tweet_parser.py
+
+Git Repo:
+https://github.com/leaf715/337-Project-1
