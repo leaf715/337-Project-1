@@ -44,9 +44,9 @@ def main():
 
     #get_red_carpet(tweets)
 
-    hosts = get_hosts(tweets)
+    # hosts = get_hosts(tweets)
 
-    #master(tweets,award_names)
+    master(tweets,award_names, unique_keys)
     #get_nominees_movies(winner_tweets,award_names)
     #get_winner_movies(winner_tweets,award_names)
 
@@ -54,14 +54,27 @@ def main():
 
     #get_presenters(tweets, award_names, unique_keys)
 
-def master(tweets, awards):
+def master(tweets, awards, unique_keys):
+    p_tweets = []
+    present_keys = ['present', 'will present', 'is presenting', 'are presenting', 'will be present']
+    for tweet in tweets:
+        for key in present_keys:
+            key = '[A-Z][a-z]* [A-Z][a-z]* '+key
+            if re.search(key,tweet, re.IGNORECASE):
+                p_tweets.append(tweet)
+        if re.search('presented by [A-Z][a-z]* [A-Z][a-z]*', tweet, re.IGNORECASE):
+            p_tweets.append(tweet)
+
     for award in awards:
-        print "\n"
+        print("\n")
+        tv_or_movie_tweets = copy.deepcopy(tweets)
         leftright = award.split('-')
         keys = leftright[0].split()
+        keys.append(leftright[0])
         bad_keys = set()
         if len(leftright) > 1:
             category = leftright[1].split()
+            category.append(leftright[1])
             if 'or' in category:
                 category.remove('or')
             if 'Motion' in category:
@@ -73,7 +86,7 @@ def master(tweets, awards):
                 bad_keys.add('TV')
                 bad_keys.add('Television')
             if 'Television' in category:
-                category.append('TV')
+                tv_or_movie_tweets = get_relevant_tweets(['TV','Television'], tweets)
                 bad_keys.add('Picture')
                 bad_keys.add('Movie')
             if 'Drama' in category:
@@ -88,6 +101,7 @@ def master(tweets, awards):
                 bad_keys.add('Drama')
                 bad_keys.add('Animated')
             if 'Miniseries' in category or 'Miniseries' in keys:
+                category.append('series')
                 bad_keys.add('Drama')
                 bad_keys.add('Comedy')
                 bad_keys.add('Musical')
@@ -98,13 +112,13 @@ def master(tweets, awards):
                 bad_keys.add('Song')
             if 'Song' in category or 'Song' in keys:
                 bad_keys.add('Score')
-            if 'Supporting' not in keys:
-                bad_keys.add('Supporting')
-            else:
-                bad_keys.add('series')
+
         else:
             category = []
-
+        if 'Supporting' not in keys:
+            bad_keys.add('Supporting')
+        else:
+            bad_keys.add('series')
         if 'Best' in keys:
             keys.remove('Best')
         if 'Motion' in keys:
@@ -114,12 +128,10 @@ def master(tweets, awards):
             bad_keys.add('TV')
             bad_keys.add('Television')
         if 'Television' in keys:
-            keys.append('TV')
+            tv_or_movie_tweets = get_relevant_tweets(['TV','Television'], tweets)
             bad_keys.add('Picture')
         if 'Miniseries' in keys:
             keys.append('series')
-
-
         if 'Actor' not in award and 'Actress' not in award:
             peopleAward = False
             bad_keys.add('Actor')
@@ -128,7 +140,7 @@ def master(tweets, awards):
             peopleAward = True
 
         # Get relevant tweets
-        relevant_tweets_keys = get_relevant_tweets(keys, tweets)
+        relevant_tweets_keys = get_relevant_tweets(keys, tv_or_movie_tweets)
         if len(category)>1:
             relevant_tweets_uncleaned = get_relevant_tweets(category, relevant_tweets_keys)
         else:
@@ -149,107 +161,80 @@ def master(tweets, awards):
             mentioned = get_movie_names2(winner_tweets)
         winner = get_winner_m(mentioned)
 
+        presenters = get_presenters(p_tweets, award, unique_keys, winner)
         print(award)
         print(winner)
+        print(presenters)
 
+def get_presenters(p_tweets, award, unique_keys, winner):
+    relevant = copy.deepcopy(p_tweets)
+    keys = award.split(' ')
+    if '-' in keys:
+        keys.remove('-')
+        awardnodash = ' '.join(keys)
+        leftright = award.split('-')
+        keys = keys + leftright
+    else:
+        awardnodash = award
 
-
-
-
-
-
-
-
-
-
-
-def get_presenters(tweets, award_names, unique_keys):
-    p_tweets = []
-    present_keys = ['present', 'will present', 'is presenting', 'are presenting', 'will be present']
-    for tweet in tweets:
-        for key in present_keys:
-            key = '[A-Z][a-z]* [A-Z][a-z]* '+key
-            if re.search(key,tweet, re.IGNORECASE):
-                p_tweets.append(tweet)
-        if re.search('presented by [A-Z][a-z]* [A-Z][a-z]*', tweet, re.IGNORECASE):
-            p_tweets.append(tweet)
-
-    # m,f = get_people(p_tweets)
-    # p = m.union(f) - winners - hosts
-    for award in award_names:
-        print(' ')
-        relevant = p_tweets
-        keys = award.split(' ')
-
-        bad_keys = set()
-        if '-' in keys:
-            keys.remove('-')
-            awardnodash = ' '.join(keys)
-            leftright = award.split('-')
-            keys = keys + leftright
-
-        if 'or' in keys:
-            keys.remove('or')
-        # keys = keys + [keys[i] + ' ' + keys[i+1] for i in range(len(keys)-1)]
-        keys.append(awardnodash)
-        if 'Best' in keys:
-            keys.remove('Best')
-        if 'Actor' in keys:
-            relevant = get_relevant_tweets(['Actor'], relevant)
-            if 'Supporting' not in keys:
-                relevant = remove_wrong_section(['Supporting Actor'],relevant)
-        elif 'Actress' in keys:
-            relevant = get_relevant_tweets(['Actress'], relevant)
-            if 'Supporting' not in keys:
-                relevant = remove_wrong_section(['Supporting Actress'],relevant)
-        else:
-            relevant = remove_wrong_section(['Actor', 'Actress'], relevant)
-        if 'Television' in keys:
-            keys.append('TV')
-            relevant = remove_wrong_section(['Picture'], relevant)
-        else:
-            relevant = remove_wrong_section(['TV', 'Television'], relevant)
-        total_keys = len(keys)
-        print(keys)
+    if 'or' in keys:
+        keys.remove('or')
+    keys.append(awardnodash)
+    if 'Best' in keys:
+        keys.remove('Best')
+    if 'Actor' in keys:
+        relevant = get_relevant_tweets(['Actor'], relevant)
+        if 'Supporting' not in keys:
+            relevant = remove_wrong_section(['Supporting Actor'],relevant)
+    elif 'Actress' in keys:
+        relevant = get_relevant_tweets(['Actress'], relevant)
+        if 'Supporting' not in keys:
+            relevant = remove_wrong_section(['Supporting Actress'],relevant)
+    else:
+        relevant = remove_wrong_section(['Actor', 'Actress'], relevant)
+    if 'Television' in keys:
+        keys.append('TV')
+        relevant = remove_wrong_section(['Picture'], relevant)
+    else:
+        relevant = remove_wrong_section(['TV', 'Television'], relevant)
+    total_keys = len(keys)
+    for key in keys:
+        if key in unique_keys:
+            relevant = get_relevant_tweets([key], relevant)
+    match_dict = {}
+    for tweet in relevant:
+        keysfound = 0
         for key in keys:
-            if key in unique_keys:
-                relevant = get_relevant_tweets([key], relevant)
-        match_dict = {}
-        for tweet in relevant:
-            keysfound = 0
+            if re.search(key,tweet, re.IGNORECASE):
+                keysfound += 1
+        match_dict[tweet] = float(keysfound)/float(total_keys)
+    sorted_dict = sorted(match_dict.items(), key = lambda x: x[1], reverse=True)
+    top_tweets = []
+    for i in range(int(len(sorted_dict)/2)):
+        k = sorted_dict[i][0]
+        top_tweets.append(k)
+    i = 0
+    keys = keys + award.split(' ')
+    while i < len(sorted_dict):
+        tweet = sorted_dict[i][0]
+        words = tweet.split(' ')
+        presenters = set()
+        j = 0
+        while j < len(words)-1:
+            if words[j].istitle() and words[j] != 'I':
+                if words[j+1].istitle() and words[j+1] != 'I':
+                    presenters.add(words[j]+' '+words[j+1])
+                    j += 1
+            j += 1
+        goodpresenters = copy.deepcopy(presenters)
+        for potential_p in presenters:
             for key in keys:
-                if re.search(key,tweet, re.IGNORECASE):
-                    keysfound += 1
-            match_dict[tweet] = float(keysfound)/float(total_keys)
-        sorted_dict = sorted(match_dict.items(), key = lambda x: x[1], reverse=True)
-        top_tweets = []
-        for i in range(int(len(sorted_dict)/2)):
-            k = sorted_dict[i][0]
-            top_tweets.append(k)
-        # presenters = get_winner(p,top_tweets)
-        print(award)
-        i = 0
-        keys = keys + award.split(' ')
-        while i < len(sorted_dict):
-            tweet = sorted_dict[i][0]
-            words = tweet.split(' ')
-            presenters = set()
-            j = 0
-            while j < len(words)-1:
-                if words[j].istitle() and words[j] != 'I':
-                    if words[j+1].istitle() and words[j+1] != 'I':
-                        presenters.add(words[j]+' '+words[j+1])
-                        j += 1
-                j += 1
-            goodpresenters = copy.deepcopy(presenters)
-            for potential_p in presenters:
-                for key in keys:
-                    if re.search(key, potential_p, re.IGNORECASE):
-                        goodpresenters.discard(potential_p)
-            if len(goodpresenters) > 0:
-                print(goodpresenters)
-                break
-            i += 1
+                if re.search(key, potential_p, re.IGNORECASE):
+                    goodpresenters.discard(potential_p)
+        if len(goodpresenters) > 0:
+            return(goodpresenters)
+            break
+        i += 1
 
 def strip_raw_tweets(raw_tweets,tweets):
         # Strips hashtags, tags, punctuation, and RTs from text and stores text in tweets list
@@ -263,6 +248,7 @@ def strip_raw_tweets(raw_tweets,tweets):
             stripped_text = stripped_text.replace('Golden Globes','')
             stripped_text = stripped_text.replace('@','')
             stripped_text = stripped_text.replace('#','')
+            stripped_text = stripped_text.replace('"', '')
             if stripped_text.find('RT') != -1:
                 stripped_text = stripped_text[:stripped_text.find('RT')]
             tweets.append(stripped_text)
@@ -273,22 +259,22 @@ def get_red_carpet(tweets):
     #for i in rcTweets:
         #print i
     mostMentionedM,mostMentionedF = get_people_rc(rcTweets)
-    print "Five Most Mentioned Women:"
+    print("Five Most Mentioned Women:")
     for i in get_winner_m2(mostMentionedF):
-        print i + " "
-    print "\nFive Most Mentioned Men:"
+        print(i + " ")
+    print("\nFive Most Mentioned Men:")
     for i in get_winner_m2(mostMentionedM):
-        print i + " "
+        print(i + " ")
 
     bestTweets = get_relevant_tweets(['best dressed'], tweets)
     bestDressedM,bestDressedF = get_people_rc(bestTweets)
-    print "\nBest Dressed Man: "+get_winner_m(bestDressedM)
-    print "\nBest Dressed Woman: "+ get_winner_m(bestDressedF)
+    print("\nBest Dressed Man: "+get_winner_m(bestDressedM))
+    print("\nBest Dressed Woman: "+ get_winner_m(bestDressedF))
 
     worstTweets = get_relevant_tweets(['worst dressed'], tweets)
     worstDressedM,worstDressedF = get_people_rc(worstTweets)
-    print "\nWorst Dressed Man: " + get_winner_m(worstDressedM)
-    print "\nWorst Dressed Woman: " + get_winner_m(worstDressedF)
+    print("\nWorst Dressed Man: " + get_winner_m(worstDressedM))
+    print("\nWorst Dressed Woman: " + get_winner_m(worstDressedF))
 
 # Get actor and actress names
 def get_people_rc(tweets):
@@ -338,7 +324,7 @@ def get_hosts(tweets):
 
     # if top two results are close, then there were cohosts
     # get better identifier than if gap was < 100 tweets
-    print potential_hosts[0],  potential_hosts[1]
+    print(potential_hosts[0],  potential_hosts[1])
     if potential_hosts[0][1] / potential_hosts[1][1] > 0.8:
         print('CoHosts: '+potential_hosts[0][0]+' and '+potential_hosts[1][0])
         return set([potential_hosts[0][0], potential_hosts[1][0]])
