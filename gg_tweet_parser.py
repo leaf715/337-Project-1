@@ -13,13 +13,15 @@ stop = stopwords.words('english')
 # http://www.nltk.org/
 import re
 # https://docs.python.org/3/library/re.html
-
 def main():
     # Config file contains data file path and awards of that show
     cfg_file = open("award_show.config", "r")
     cfg_lines = cfg_file.readlines()
     data_path = json.loads(cfg_lines[0])
     award_names = json.loads(cfg_lines[1])
+    gg_parser(award_names, data_path)
+
+def gg_parser(award_names, data_path):
     raw_data = open(data_path, "r")
     raw_tweets = json.loads(raw_data.read())
     tweets = []
@@ -50,7 +52,11 @@ def main():
 
     json_dict['award_data'] =award_dict
     json_dict = json.dumps(json_dict)
-    print(json_dict)
+
+    year = data_path[2:6]
+    f = open('gg%sresults.json'%year,'w+')
+    f.write(json_dict)
+    f.write(awards)
 
 
     #get_nominees_movies(winner_tweets,award_names)
@@ -322,11 +328,11 @@ def getAwards(tweets):
                 winningKey = key
         award_dict[winningKey] = 0
         nomKeys.add(winningKey)
-    print "List of Awards: \n"
+    print("List of Awards: \n")
     for i in nomKeys:
-        print i
-    print "\n"
-    return nomKeys
+        print(i)
+    print("\n")
+    return list(nomKeys)
 
 def get_red_carpet(tweets):
     rcTweets =  get_relevant_tweets(['red carpet'], tweets)
