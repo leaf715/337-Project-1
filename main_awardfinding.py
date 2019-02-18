@@ -1,12 +1,12 @@
 import json
 import nltk
-import heapq
-nltk.download("stopwords") #getting Certificate error with this in
-nltk.download("punkt")
-nltk.download('averaged_perceptron_tagger')
-nltk.download('maxent_ne_chunker')
-nltk.download('words')
-nltk.download('names')
+import copy
+# nltk.download("stopwords") #getting Certificate error with this in
+# nltk.download("punkt")
+# nltk.download('averaged_perceptron_tagger')
+# nltk.download('maxent_ne_chunker')
+# nltk.download('words')
+# nltk.download('names')
 # nltk.download("stopwords") #getting Certificate error with this in
 from nltk.corpus import stopwords, names
 stop = stopwords.words('english')
@@ -19,32 +19,53 @@ def main():
     cfg_file = open("award_show.config", "r")
     cfg_lines = cfg_file.readlines()
     data_path = json.loads(cfg_lines[0])
-    # award_names = json.loads(cfg_lines[1])
+    award_names = json.loads(cfg_lines[1])
     raw_data = open(data_path, "r")
     raw_tweets = json.loads(raw_data.read())
     tweets = []
-
     tweets = strip_raw_tweets(raw_tweets, tweets)
-    award_names = get_awards(tweets)
-    get_hosts(tweets)
+    print(len(tweets))
+    nlp_awards = get_award_names(tweets)
+    print(nlp_awards)
 
-    get_winner_ppl(tweets,award_names)
+def get_award_names(tweets):
+    award_dict = {}
+    for tweet in tweets:
+        tweet.replace('!','')
+        tweet.replace('.','')
+        tweet.replace(':','')
+        words = tweet.split(' ')
+        if 'Best' in words:
+            i = words.index('Best')
+            award = []
+            other_words = ['-', 'for', 'in', 'a']
+            while i < len(words):
+                if words[i] == 'At':
+                    break
+                if words[i].istitle():
+                    award.append(words[i])
+                elif words[i] in other_words:
+                    if i+1 < len(words):
+                        if words[i+1].istitle():
+                            award.append(words[i]+' '+words[i+1])
+                            i += 1
+                        else:
+                            break
+                else:
+                    break
+                i += 1
+            if len(award) > 1 and len(award) < 7:
+                award = ' '.join(award)
+                award_dict[award] = award_dict.get(award, 0) + 1
+    # keys = list(award_dict.keys())
+    # keys = [words.split(' ') for words in keys]
+    # for i in range(len(keys)):
+    #     for j in range(len(keys)):
+    #         if i == j:
+    #             pass
+    award_dict = sorted(award_dict.items(), key = lambda x: x[1], reverse=True)
+    return award_dict
 
-    # all_presenter_tweets = get_relevant_tweets(['present'], tweets)
-    # all_presenters_m, all_presenters_f = get_people(all_presenter_tweets)
-    # all_presenters = all_presenters_f.union(all_presenters_m)
-    # figure out how to identify movie and tv show names
-    nominees_show = set()
-    winners_show = set()
-
-    return
-    # raw_data = open("gg2013.json", "r")
-    # raw_tweets = json.loads(raw_data.read())
-    # tweets = []
-    # tweets = strip_raw_tweets(raw_tweets, tweets)
-    # awards = get_awards(tweets)
-    # for award in awards:
-    #     print(award)
 
 
 def strip_raw_tweets(raw_tweets,tweets):
@@ -57,216 +78,12 @@ def strip_raw_tweets(raw_tweets,tweets):
             stripped_text = stripped_text.replace('.','')
             stripped_text = stripped_text.replace(',','')
             stripped_text = stripped_text.replace('Golden Globes','')
+            stripped_text = stripped_text.replace('@','')
+            stripped_text = stripped_text.replace('#','')
             if stripped_text.find('RT') != -1:
                 stripped_text = stripped_text[:stripped_text.find('RT')]
             tweets.append(stripped_text)
         return tweets
 
-def get_hosts(tweets):
-    # Get tweets that contain the word host
-    host_tweets = get_relevant_tweets(["host"], tweets)
-    potential_hosts = get_names(host_tweets)
-    potential_hosts = sorted(potential_hosts.items(), key = lambda x: x[1], reverse=True)
-    # if top two results are close, then there were cohosts
-    # get better identifier than if gap was < 100 tweets
-    if potential_hosts[1][1] - potential_hosts[0][1] < 100:
-        print('CoHosts: '+potential_hosts[0][0]+' and '+potential_hosts[1][0])
-    else:
-        print('Host: '+potential_hosts[0][0])
-
-def get_winner_ppl(tweets,award_names):
-    previous_winners_ppl = set()
-    # match actors and actresses to awards
-    for award in award_names:
-        # preprocess keys given to tweet searcher
-        leftright = award.split('-')
-        keys = leftright[0].split()
-        bad_keys = set()
-        if len(leftright) > 1:
-            category = leftright[1].split()
-            if 'or' in category:
-                category.remove('or')
-            if 'Motion' in category:
-                category.remove('Motion')
-            if 'Picture' in category:
-                category.append('Film')
-                bad_keys.add('TV')
-                bad_keys.add('Television')
-            if 'Television' in category:
-                category.append('TV')
-                bad_keys.add('Picture')
-            if 'Drama' in category:
-                bad_keys.add('Comedy')
-                bad_keys.add('Musical')
-            if 'Comedy' in category:
-                bad_keys.add('Drama')
-            if 'Miniseries' in category:
-                bad_keys.add('Drama')
-                bad_keys.add('Comedy')
-                bad_keys.add('Musical')
-            else:
-                bad_keys.add('Miniseries')
-        else:
-            category = []
-        # if 'Actor' in keys:
-        #     winner_set = winners_m
-        #     # nominees_set = nominees_m
-        # elif 'Actress' in keys:
-        #     winner_set = winners_f
-            # nominees_set = nominees_f
-        # else:
-        if 'Best' in keys:
-            keys.remove('Best')
-        if 'Motion' in keys:
-            keys.remove('Motion')
-        if 'Picture' in keys:
-            keys.append('Film')
-            bad_keys.add('TV')
-            bad_keys.add('Television')
-        if 'Television' in keys:
-            keys.append('TV')
-            bad_keys.add('Picture')
-        # Get relevant tweets
-
-        # keys = award.split(' ')
-        relevant_tweets_keys = get_relevant_tweets(keys, tweets)
-        relevant_tweets_uncleaned = get_relevant_tweets(category, relevant_tweets_keys)
-        relevant_tweets = remove_wrong_section(bad_keys, relevant_tweets_uncleaned)
-        winner_tweets = get_relevant_tweets(['congrat', 'win'], relevant_tweets)
-        winners_m, winners_f = get_people(winner_tweets)
-        if 'Actor' in keys:
-            winner_set = winners_m - previous_winners_ppl
-        elif 'Actress' in keys:
-            winner_set = winners_f - previous_winners_ppl
-        else:
-            continue
-        winner = get_winner(winner_set, relevant_tweets)
-        print(award)
-        print(winner)
-        # 4 people in history have won 2 individual awards in the same year I'll take that bet
-        previous_winners_ppl.add(winner)
-        # winners_m.discard(winner)
-        # winners_f.discard(winner)
-
-# Find winner most associated with award
-def get_winner(possible, tweets):
-    match_dict = dict((name, 0) for name in list(possible))
-    allwords = ' '.join(tweets)
-    for p in possible:
-        # without the space at the end people who spell like shit mess everything up
-        match_dict[p] = allwords.count(p+' ')
-    sorted_dict = sorted(match_dict.items(), key = lambda x: x[1], reverse=True)
-    if len(sorted_dict) == 0:
-        return "can't find any winner"
-    winner = sorted_dict[0][0]
-    return winner
-
-# get tweets that contain any of the keys
-def get_relevant_tweets(keys, tweets):
-    relevant = []
-    for tweet in tweets:
-        for key in keys:
-            if re.search(key, tweet, re.IGNORECASE):
-                relevant.append(tweet)
-                break
-
-    return relevant
-
-# Gets rid of tweets about wrong award because some of them have very similar keys
-def remove_wrong_section(bad_keys, tweets):
-    relevant = tweets
-    for tweet in tweets:
-        for key in bad_keys:
-            if re.search(key, tweet, re.IGNORECASE):
-                relevant.remove(tweet)
-                break
-    return relevant
-
-# Get actor and actress names
-def get_people(tweets):
-    men = set()
-    women = set()
-    for tweet in tweets:
-        words = [nltk.word_tokenize(tweet)]
-        tagged_words = [nltk.pos_tag(word) for word in words][0]
-        for chunk in nltk.ne_chunk(tagged_words):
-            if type(chunk) == nltk.tree.Tree:
-                # Adele needs a last name but other than her its fine to look for first and last
-                if chunk.label() == 'PERSON' and len(chunk) > 1 and len(chunk) < 3:
-                    name = (' '.join([c[0] for c in chunk]))
-                    first = name.split(' ',1)[0]
-                    if first in names.words('male.txt'):
-                        men.add(name)
-                    if first in names.words('female.txt'):
-                        women.add(name)
-
-    return men, women
-
-# Old function that still works for host so I left it in
-def get_names(tweets):
-    ppl_and_movies = {}
-    for tweet in tweets:
-        words = [nltk.word_tokenize(tweet)]
-        tagged_words = [nltk.pos_tag(word) for word in words][0]
-        for chunk in nltk.ne_chunk(tagged_words):
-            if type(chunk) == nltk.tree.Tree:
-                if chunk.label() == 'PERSON' and len(chunk) > 1:
-                    name = (' '.join([c[0] for c in chunk]))
-                    if name in ppl_and_movies.keys():
-                        ppl_and_movies[name] = ppl_and_movies[name] + 1
-                    else:
-                        ppl_and_movies[name] = 1
-
-    return ppl_and_movies
-# The idea is to use pattern matching to find potential award names
-def get_awards(tweets):
-    # This is to check repitition and don't want an award to end with a name
-    def check_availability(potential_award):
-        if potential_award in potential_awards:
-            return potential_award
-        words = potential_award.split()
-        for word in words:
-            if word in names.words():
-                # print ("huhuhuhuhu")
-                return None
-        for award in potential_awards:
-            same = True
-            award_words = award.split()
-            for word in words:
-                if word not in award_words and word != '-':
-                    same = False
-            if same:
-                # print ("papapapapa")
-                if potential_award.count('-') > 0:
-                    return potential_award
-                else:
-                    return award
-        return potential_award
-
-
-    potential_awards = {}
-    pq = []
-    awards = []
-    pattern = 'Best (([A-Z][a-z]+ ?-? )|or |for ){2,5}[A-Z][a-z]+'
-    # pattern = 'Best ([A-Z][a-z]+ ){1,}(- )(([A-Z][a-z]+ )|or |in | for)+[A-Z][a-z]+ '
-    for tweet in tweets:
-        match = re.match(pattern, tweet)
-        count = 0
-        if match:
-            potential_award = match.group(0)
-            if potential_award.count('-') > 1:
-                continue
-            potential_award = check_availability(potential_award)
-            if potential_award:
-                potential_awards[potential_award] = potential_awards.get(potential_award, 0) + 1
-    for potential_award in potential_awards:
-        heapq.heappush(pq, (-potential_awards[potential_award], potential_award))
-    length = len(pq)
-    # use the most frequent 30 award names
-    for i in range(min(length, 30)):
-        awards.append(heapq.heappop(pq)[1])
-    return awards
-
 if __name__ == "__main__":
     main()
-
